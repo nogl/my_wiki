@@ -1,15 +1,24 @@
+import os
+
+from dotenv import load_dotenv
+
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import scoped_session, sessionmaker
+
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
-from dotenv import load_dotenv
-import os
+
 
 # Load .env
 load_dotenv()
 
 # Extension's Init
-db = SQLAlchemy()
+engine = create_engine(os.getenv('DATABASE_URL'))
+db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+
+
 jwt = JWTManager()
 
 
@@ -17,13 +26,11 @@ def create_app():
     app = Flask(__name__)
 
     # Flask config from env
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 
     # Flask extensions
-    db.init_app(app)
     jwt.init_app(app)
 
     swagger_config = {
@@ -47,6 +54,7 @@ def create_app():
                 "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
             }
         },
+
         "security": [
             {
                 "Bearer": []

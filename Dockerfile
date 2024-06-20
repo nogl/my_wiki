@@ -4,12 +4,9 @@ FROM python:3.12-slim-bookworm
 # Establecer el directorio de trabajo
 WORKDIR /app
 
-# Copiar los archivos de requerimientos y el código de la aplicación
-COPY requirements.txt requirements.txt
-COPY . .
-
-# Instalar las dependencias
-RUN pip install -r requirements.txt
+# Copiar los archivos de requerimientos primero y luego instalar las dependencias
+COPY requirements.txt ./
+RUN python -m pip install --upgrade pip && python -m pip install -r requirements.txt
 
 # Establecer las variables de entorno
 ENV FLASK_APP=app

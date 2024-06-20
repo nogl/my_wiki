@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from .models import User
-from . import db
+from . import db_session
 
 from flasgger import swag_from
 
@@ -76,8 +76,8 @@ def register():
 
     new_user = User(username=username, email=email)
     new_user.set_password(password)
-    db.session.add(new_user)
-    db.session.commit()
+    db_session.session.add(new_user)
+    db_session.session.commit()
 
     return jsonify({'message': 'User registered successfully'}), 201
 

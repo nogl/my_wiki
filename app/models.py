@@ -1,29 +1,35 @@
-from . import db
 from datetime import datetime
+
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Table, Boolean
+from sqlalchemy.orm import relationship, declarative_base, backref
+
+from app import db_session
+
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from sqlalchemy import DateTime
+Base = declarative_base()
 
 
-class BaseModel(db.Model):
+class BaseModel(Base):
     __abstract__ = True
 
-    id = db.Column(db.Integer, primary_key=True)
-    created = db.Column(DateTime, default=datetime.utcnow)
-    updated = db.Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = Column(Integer, primary_key=True)
+    created = Column(DateTime, default=datetime.now())
+    updated = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
     @classmethod
     def get_by_id(cls, id):
+        cls: Base
         return cls.query.get(id)
 
 
 class User(BaseModel):
     __tablename__ = 'users'
 
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
-    status = db.Column(db.Integer, default=0)
+    username = Column(String(50), unique=True, nullable=False)
+    email = Column(String(120), unique=True, nullable=False)
+    password_hash = Column(String(256), nullable=False)
+    status = Column(Integer, default=0)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -35,33 +41,68 @@ class User(BaseModel):
         return f'<User {self.username}>'
 
 
-# Tabla de asociación para tags
-namespace_tags = db.Table('namespace_tags',
-                          db.Column('namespace_id', db.Integer, db.ForeignKey('namespaces.id'), primary_key=True),
-                          db.Column('tag_id', db.Integer, db.ForeignKey('tags.id'), primary_key=True)
-                          )
+namespace_tags = Table('namespace_tags', Base.metadata,
+                       Column('namespace_id', Integer, ForeignKey('namespaces.id'), primary_key=True),
+                       Column('tag_id', Integer, ForeignKey('tags.id'), primary_key=True)
+                       )
 
 
 class Tag(BaseModel):
     __tablename__ = 'tags'
 
-    name = db.Column(db.String(50), unique=True, nullable=False)
+    name = Column(String(50), unique=True, nullable=False)
+
+
+class Book(BaseModel):
+    __tablename__ = 'books'
+    id = Column(Integer, primary_key=True)
+    title = Column(String(200), nullable=False)
+    description = Column(Text)
 
 
 class Namespace(BaseModel):
     __tablename__ = 'namespaces'
 
-    name = db.Column(db.String(50), nullable=False)
-    slug = db.Column(db.String(50), unique=True, nullable=False)
-    md_content = db.Column(db.Text, nullable=False)
-    status = db.Column(db.Integer, default=1)
-    active = db.Column(db.Boolean, default=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    user = db.relationship('User',
-                           backref=db.backref('namespaces', lazy=True)
-                           )
-    tags = db.relationship('Tag',
-                           secondary=namespace_tags,
-                           lazy='subquery',
-                           backref=db.backref('namespaces', lazy=True)
-                           )
+    name = Column(String(50), nullable=False)
+    slug = Column(String(50), unique=True, nullable=False)
+    md_content = Column(Text, nullable=False)
+    status = Column(Integer, default=1)
+    active = Column(Boolean, default=True)
+
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user = relationship('User',
+                        backref=backref('namespaces', lazy=True)
+                        )
+
+    tags = relationship('Tag',
+                        secondary=namespace_tags,
+                        lazy='subquery',
+                        backref=backref('namespaces', lazy=True)
+                        )
+
+    book_id = Column(Integer, ForeignKey('books.id'), nullable=False)
+    book = relationship('Book', backref='namespaces')
+
+
+class Post(BaseModel):
+    __tablename__ = 'posts'
+    id = Column(Integer, primary_key=True)
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=False)
+
+    namespace_id = Column(Integer,
+                          ForeignKey('namespaces.id'),
+                          nullable=False)
+    namespace = relationship('Namespace',
+                             backref='posts')
+
+    user_id = Column(Integer,
+                     ForeignKey('users.id'),
+                     nullable=False)
+
+    user = relationship('User',
+                        backref='posts')
+
+
+# Add BaseModel to link the session
+Base.query = db_session.query_property()

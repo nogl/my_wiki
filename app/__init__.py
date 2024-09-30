@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from flask import Flask
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.orm import session
 
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
@@ -16,7 +16,7 @@ load_dotenv()
 
 # Extension's Init
 engine = create_engine(os.getenv('DATABASE_URL'))
-db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+db_session = session.Session(autocommit=False, autoflush=False, bind=engine)
 
 
 jwt = JWTManager()

@@ -102,7 +102,3 @@ class Post(BaseModel):
 
     user = relationship('User',
                         backref='posts')
-
-
-# Add BaseModel to link the session
-Base.query = db_session.query_property()

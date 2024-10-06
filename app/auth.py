@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from .models import User
-from . import db_session
+from app.models import User
+from app.db import db_session
 
 from flasgger import swag_from
 

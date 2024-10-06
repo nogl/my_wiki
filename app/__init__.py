@@ -1,23 +1,21 @@
 import os
+import sys
 
 from dotenv import load_dotenv
+from loguru import logger
 
 from flask import Flask
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import session
 
 from flask_jwt_extended import JWTManager
 from flasgger import Swagger
 
+from app.commands import db_cli
+
+logger.remove(0)
+logger.add(sys.stderr, level="TRACE", format="<level><b>{time:YYYY_MM_DD-HH:mm:ss} | {level}</b> | {message}</level>")
 
 # Load .env
 load_dotenv()
-
-# Extension's Init
-engine = create_engine(os.getenv('DATABASE_URL'))
-db_session = session.Session(autocommit=False, autoflush=False, bind=engine)
-
 
 jwt = JWTManager()
 
@@ -70,4 +68,6 @@ def create_app():
     app.register_blueprint(main)
     app.register_blueprint(auth)
 
+    with app.app_context():
+        app.cli.add_command(db_cli)
     return app

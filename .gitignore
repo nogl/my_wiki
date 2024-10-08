@@ -2,3 +2,5 @@
 venv
 postgres_data
 *.pyc
+!develop.env
+*.env

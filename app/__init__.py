@@ -14,7 +14,7 @@ from app.commands import db_cli
 logger.remove(0)
 logger.add(sys.stderr, level="TRACE", format="<level><b>{time:YYYY_MM_DD-HH:mm:ss} | {level}</b> | {message}</level>")
 
-# Load .env
+# Load develop.env
 load_dotenv()
 
 jwt = JWTManager()
@@ -27,6 +27,8 @@ def create_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+
+    logger.info(f'Start Flask APP - {os.getenv('DATABASE_URL')}')
 
     # Flask extensions
     jwt.init_app(app)

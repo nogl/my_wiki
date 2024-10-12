@@ -20,17 +20,6 @@ def fetch_all_users():
     ]
 
 
-def fetch_user_by_id(user_id):
-    user = db_session.query(User).filter_by(id=user_id).first()
-    if user:
-        return {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email
-        }
-    return None
-
-
 def create_user(username, email, password, bio):
     if db_session.query(User).filter_by(username=username).first():
         return {"error": "Username already exists"}
@@ -48,6 +37,20 @@ def create_user(username, email, password, bio):
     db_session.commit()
 
     return {"message": "User created successfully"}
+
+
+def get_user_by_id(user_id):
+    user = db_session.query(User).filter_by(id=user_id).first()
+    if user:
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "bio": user.bio,
+            "status": user.status,
+            "url_identifier": user.url_identifier
+        }
+    return jsonify({"message": "User not found"}), 404
 
 
 users_bp = Blueprint('users', __name__, url_prefix='/users')
@@ -76,15 +79,6 @@ def get_users():
     """Get all users"""
     users = fetch_all_users()
     return jsonify(users), 200
-
-
-@users_bp.route('/<int:id>', methods=['GET'])
-@jwt_required()
-def get_user(user_id):
-    user = fetch_user_by_id(user_id)
-    if user:
-        return jsonify(user), 200
-    return jsonify({"message": "User not found"}), 404
 
 
 @users_bp.route('/', methods=['POST'])
@@ -116,6 +110,7 @@ def get_user(user_id):
     }
 })
 def create_new_user():
+    """Create a new user"""
     data = request.get_json()
     if not data:
         return jsonify({"message": "No input data provided"}), 400
@@ -133,6 +128,32 @@ def create_new_user():
         return jsonify(result), 400
 
     return jsonify({"message": "User created successfully"}), 201
+
+
+@users_bp.route('/<int:user_id>', methods=['GET'])
+@jwt_required()
+@swag_from({
+    'tags': ['User'],
+    'security': [{
+        'Bearer': []
+    }],
+    'parameters': [
+        {
+            'name': 'id',
+            'in': 'path',
+            'required': True,
+            'type': 'integer'
+        }
+    ],
+    'responses': {
+        200: {'description': 'Returns a user by ID'},
+        404: {'description': 'User not found'}
+    }
+})
+def get_user(user_id):
+    """Get a user by ID"""
+    get_user_by_id(user_id)
+
 
 @users_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()
@@ -162,6 +183,7 @@ def create_new_user():
     }
 })
 def put_user():
+    """Update a user"""
     current_user_id = get_jwt_identity()
     user = db_session.query(User).filter_by(id=current_user_id).first()
     if not user:
@@ -187,7 +209,9 @@ def put_user():
 @users_bp.route('/login', methods=['POST'])
 @swag_from({
     'tags': ['User'],
-    'security': [],
+    'security': [{
+        'Bearer': []
+    }],
     'parameters': [
         {
             'name': 'body',
@@ -209,6 +233,7 @@ def put_user():
     }
 })
 def login():
+    """Returns an access token"""
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -219,6 +244,7 @@ def login():
 
     access_token = create_access_token(identity=user.id)
     return jsonify({'access_token': access_token}), 200
+
 
 @users_bp.route('/me', methods=['GET'])
 @jwt_required()
@@ -234,15 +260,6 @@ def login():
     }
 })
 def get_me():
+    """Returns the current user information"""
     current_user_id = get_jwt_identity()
-    user = db_session.query(User).filter_by(id=current_user_id).first()
-    if user:
-        return {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "bio": user.bio,
-            "status": user.status,
-            "url_identifier": user.url_identifier
-        }
-    return None
+    get_user_by_id(current_user_id)

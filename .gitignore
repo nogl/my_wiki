@@ -1,5 +1,5 @@
 .idea
-venv
+venv*
 postgres_data
 *.pyc
 !develop.env

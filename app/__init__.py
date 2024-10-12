@@ -35,6 +35,19 @@ def create_app():
 
     swagger_config = {
         "headers": [],
+        "swagger": "2.0",
+        "info": {
+            "title": "my_wiki API",
+            "description": "API for my data",
+            "contact": {
+                "responsibleOrganization": "None",
+                "responsibleDeveloper": "None",
+                "email": "None",
+                "url": "None",
+            },
+            "termsOfService": "just for fun",
+            "version": "0.0.1"
+        },
         "specs": [
             {
                 "endpoint": 'apispec_1',
@@ -54,7 +67,6 @@ def create_app():
                 "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
             }
         },
-
         "security": [
             {
                 "Bearer": []

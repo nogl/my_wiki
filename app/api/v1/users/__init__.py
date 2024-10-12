@@ -1,14 +1,56 @@
-from flask import Blueprint, request, jsonify, session
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+from flasgger import swag_from
+
 from app.models import User
 from app.db import db_session
 
-from flasgger import swag_from
 
-auth = Blueprint('auth', __name__)
+def fetch_all_users():
+    users = db_session.query(User).all()
+    return [
+        {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "bio": user.bio,
+            "status": user.status,
+            "url_identifier": user.url_identifier
+        } for user in users
+    ]
+
+def fetch_user_by_id(user_id):
+    user = db_session.query(User).filter_by(id=user_id).first()
+    if user:
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email
+        }
+    return None
+
+def create_user(username, email, password, bio):
+    if db_session.query(User).filter_by(username=username).first():
+        return {"error": "Username already exists"}
+
+    if db_session.query(User).filter_by(email=email).first():
+        return {"error": "Email already exists"}
+
+    new_user = User(username=username, email=email)
+    new_user.set_password(password)
+    new_user.bio = bio
+    new_user.status = 1
+    new_user.url_identifier = f'/u/{username}'
+
+    db_session.add(new_user)
+    db_session.commit()
+
+    return {"message": "User created successfully"}
+
+users_bp = Blueprint('users', __name__, url_prefix='/users')
 
 
-@auth.route('/users', methods=['GET'])
+@users_bp.route('/', methods=['GET'])
 @jwt_required()
 @swag_from({
     'security': [{
@@ -27,16 +69,18 @@ auth = Blueprint('auth', __name__)
     }
 })
 def get_users():
-    current_user_id = get_jwt_identity()
-    users = db_session.query(User).all()
-    return jsonify(
-        [
-            {'id': user.id, 'username': user.username, 'email': user.email} for user in users
-        ]
-    )
+    users = fetch_all_users()
+    return jsonify(users), 200
 
+@users_bp.route('/<int:id>', methods=['GET'])
+@jwt_required()
+def get_user(id):
+    user = fetch_user_by_id(id)
+    if user:
+        return jsonify(user), 200
+    return jsonify({"message": "User not found"}), 404
 
-@auth.route('/register', methods=['POST'])
+@users_bp.route('/', methods=['POST'])
 @swag_from({
     'security': [{
         'Bearer': []
@@ -51,7 +95,8 @@ def get_users():
                 'properties': {
                     'username': {'type': 'string'},
                     'email': {'type': 'string'},
-                    'password': {'type': 'string'}
+                    'password': {'type': 'string'},
+                    'bio': {'type': 'string'}
                 },
                 'required': ['username', 'email', 'password']
             }
@@ -62,27 +107,29 @@ def get_users():
         400: {'description': 'Username or email already exists'}
     }
 })
-def register():
+def create_new_user():
     data = request.get_json()
+    if not data:
+        return jsonify({"message": "No input data provided"}), 400
+
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
+    bio = data.get('bio')
 
-    if db_session.query(User).filter_by(username=username).first():
-        return jsonify({'message': 'Username already exists'}), 400
+    if not username or not email or not password:
+        return jsonify({"message": "Missing fields"}), 400
 
-    if db_session.query(User).filter_by(email=email).first():
-        return jsonify({'message': 'Email already exists'}), 400
+    result = create_user(username, email, password, bio)
+    if result.get('error'):
+        return jsonify(result), 400
 
-    new_user = User(username=username, email=email)
-    new_user.set_password(password)
-    db_session.add(new_user)
-    db_session.commit()
-
-    return jsonify({'message': 'User registered successfully'}), 201
+    return jsonify({"message": "User created successfully"}), 201
 
 
-@auth.route('/login', methods=['POST'])
+
+
+@users_bp.route('/login', methods=['POST'])
 @swag_from({
     'security': [{
         'Bearer': []

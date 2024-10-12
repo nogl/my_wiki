@@ -41,7 +41,7 @@ class User(BaseModel):
 
 class Namespace(BaseModel):
     __tablename__ = 'namespaces_table'
-    name = Column(String(64), nullable=False)
+    name = Column(String(256), nullable=False)
     url_identifier = Column(String(64), unique=True, nullable=False)
 
     md_content = Column(Text, nullable=True)
@@ -77,7 +77,8 @@ class Page(BaseModel):
 
 class Section(BaseModel):
     __tablename__ = 'sections_table'
-    title = Column(String(200), nullable=False)
+    title = Column(String(256), nullable=False)
+    url_identifier = Column(String(64), unique=True, nullable=False)
 
     md_content = Column(Text, nullable=True)
     status = Column(Integer, default=1)

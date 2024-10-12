@@ -65,10 +65,10 @@ def create_app():
     Swagger(app, config=swagger_config)
 
     from .routes import main
-    from .auth import auth
-
     app.register_blueprint(main)
-    app.register_blueprint(auth)
+
+    from .api.v1.users import users_bp
+    app.register_blueprint(users_bp)
 
     with app.app_context():
         app.cli.add_command(db_cli)
